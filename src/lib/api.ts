@@ -11,6 +11,12 @@ export type Student = {
   status: string;
   gpa: number | null;
   enrolled_on: string;
+  phone?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  guardian_name?: string | null;
+  guardian_phone?: string | null;
   course?: { code: string; title: string } | null;
 };
 
@@ -23,6 +29,8 @@ export type Course = {
   schedule: string | null;
   capacity: number;
   instructor_id: string | null;
+  description?: string | null;
+  semester?: string | null;
   instructor?: { full_name: string } | null;
   enrolled_count?: number;
 };
@@ -35,6 +43,10 @@ export type Teacher = {
   department: string;
   title: string;
   joined_year: number | null;
+  phone?: string | null;
+  qualification?: string | null;
+  specialization?: string | null;
+  office?: string | null;
 };
 
 export type Fee = {
@@ -55,6 +67,9 @@ export type Announcement = {
   body: string;
   audience: string;
   created_at: string;
+  priority?: "normal" | "important" | "urgent";
+  pinned?: boolean;
+  expires_at?: string | null;
 };
 
 export type Book = {
@@ -65,6 +80,10 @@ export type Book = {
   category: string | null;
   total_copies: number;
   available_copies: number;
+  publisher?: string | null;
+  year_published?: number | null;
+  edition?: string | null;
+  shelf?: string | null;
 };
 
 export type AttendanceRow = {
@@ -81,6 +100,10 @@ export type ExamWithGrades = {
   exam_date: string;
   total_marks: number;
   course_id: string;
+  duration_minutes?: number | null;
+  location?: string | null;
+  start_time?: string | null;
+  instructions?: string | null;
   course?: { code: string; title: string } | null;
   grades?: { id: string; score: number; student_id: string; student?: { full_name: string } | null }[];
 };
@@ -217,15 +240,17 @@ export const createStudent = async (input: {
   course_id: string | null;
   year: number;
   status: string;
+  phone?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  guardian_name?: string | null;
+  guardian_phone?: string | null;
+  enrolled_on?: string;
 }) => {
-  const { error } = await supabase.from("students").insert({
-    student_no: genNo("STU"),
-    full_name: input.full_name,
-    email: input.email,
-    course_id: input.course_id,
-    year: input.year,
-    status: input.status,
-  });
+  const { error } = await supabase
+    .from("students")
+    .insert({ student_no: genNo("STU"), ...input } as never);
   if (error) throw error;
 };
 
@@ -235,11 +260,14 @@ export const createTeacher = async (input: {
   department: string;
   title: string;
   joined_year: number | null;
+  phone?: string | null;
+  qualification?: string | null;
+  specialization?: string | null;
+  office?: string | null;
 }) => {
-  const { error } = await supabase.from("teachers").insert({
-    staff_no: genNo("STF"),
-    ...input,
-  });
+  const { error } = await supabase
+    .from("teachers")
+    .insert({ staff_no: genNo("STF"), ...input } as never);
   if (error) throw error;
 };
 
@@ -251,8 +279,10 @@ export const createCourse = async (input: {
   capacity: number;
   schedule: string | null;
   instructor_id: string | null;
+  description?: string | null;
+  semester?: string | null;
 }) => {
-  const { error } = await supabase.from("courses").insert(input);
+  const { error } = await supabase.from("courses").insert(input as never);
   if (error) throw error;
 };
 
@@ -262,11 +292,14 @@ export const createBook = async (input: {
   isbn: string | null;
   category: string | null;
   total_copies: number;
+  publisher?: string | null;
+  year_published?: number | null;
+  edition?: string | null;
+  shelf?: string | null;
 }) => {
-  const { error } = await supabase.from("library_books").insert({
-    ...input,
-    available_copies: input.total_copies,
-  });
+  const { error } = await supabase
+    .from("library_books")
+    .insert({ ...input, available_copies: input.total_copies } as never);
   if (error) throw error;
 };
 
@@ -275,8 +308,12 @@ export const scheduleExam = async (input: {
   title: string;
   exam_date: string;
   total_marks: number;
+  duration_minutes?: number | null;
+  location?: string | null;
+  start_time?: string | null;
+  instructions?: string | null;
 }) => {
-  const { error } = await supabase.from("exams").insert(input);
+  const { error } = await supabase.from("exams").insert(input as never);
   if (error) throw error;
 };
 
@@ -289,6 +326,16 @@ export const markAttendance = async (
   const { error } = await supabase
     .from("attendance")
     .upsert({ student_id, course_id, date, status }, { onConflict: "student_id,course_id,date" });
+  if (error) throw error;
+};
+
+export const markAttendanceBulk = async (
+  rows: { student_id: string; course_id: string; date: string; status: "present" | "late" | "absent" }[],
+) => {
+  if (!rows.length) return;
+  const { error } = await supabase
+    .from("attendance")
+    .upsert(rows, { onConflict: "student_id,course_id,date" });
   if (error) throw error;
 };
 
@@ -351,8 +398,11 @@ export const createAnnouncement = async (input: {
   title: string;
   body: string;
   audience: string;
+  priority?: "normal" | "important" | "urgent";
+  pinned?: boolean;
+  expires_at?: string | null;
 }) => {
-  const { error } = await supabase.from("announcements").insert(input);
+  const { error } = await supabase.from("announcements").insert(input as never);
   if (error) throw error;
 };
 
@@ -375,8 +425,8 @@ export const recordGrade = async (input: {
 
 /* ----------------------------- Updates & Deletes ----------------------------- */
 
-export const updateStudent = async (id: string, input: Partial<Pick<Student, "full_name" | "email" | "course_id" | "year" | "status">>) => {
-  const { error } = await supabase.from("students").update(input).eq("id", id);
+export const updateStudent = async (id: string, input: Partial<Student>) => {
+  const { error } = await supabase.from("students").update(input as never).eq("id", id);
   if (error) throw error;
 };
 export const deleteStudent = async (id: string) => {
@@ -384,8 +434,8 @@ export const deleteStudent = async (id: string) => {
   if (error) throw error;
 };
 
-export const updateTeacher = async (id: string, input: Partial<Pick<Teacher, "full_name" | "email" | "department" | "title" | "joined_year">>) => {
-  const { error } = await supabase.from("teachers").update(input).eq("id", id);
+export const updateTeacher = async (id: string, input: Partial<Teacher>) => {
+  const { error } = await supabase.from("teachers").update(input as never).eq("id", id);
   if (error) throw error;
 };
 export const deleteTeacher = async (id: string) => {
@@ -393,8 +443,8 @@ export const deleteTeacher = async (id: string) => {
   if (error) throw error;
 };
 
-export const updateCourse = async (id: string, input: Partial<Pick<Course, "code" | "title" | "department" | "credits" | "capacity" | "schedule" | "instructor_id">>) => {
-  const { error } = await supabase.from("courses").update(input).eq("id", id);
+export const updateCourse = async (id: string, input: Partial<Course>) => {
+  const { error } = await supabase.from("courses").update(input as never).eq("id", id);
   if (error) throw error;
 };
 export const deleteCourse = async (id: string) => {
@@ -402,8 +452,8 @@ export const deleteCourse = async (id: string) => {
   if (error) throw error;
 };
 
-export const updateBook = async (id: string, input: Partial<Pick<Book, "title" | "author" | "isbn" | "category" | "total_copies" | "available_copies">>) => {
-  const { error } = await supabase.from("library_books").update(input).eq("id", id);
+export const updateBook = async (id: string, input: Partial<Book>) => {
+  const { error } = await supabase.from("library_books").update(input as never).eq("id", id);
   if (error) throw error;
 };
 export const deleteBook = async (id: string) => {
@@ -421,6 +471,39 @@ export const deleteFee = async (id: string) => {
 };
 
 export const updateAnnouncement = async (id: string, input: Partial<Pick<Announcement, "title" | "body" | "audience">>) => {
-  const { error } = await supabase.from("announcements").update(input).eq("id", id);
+  const { error } = await supabase.from("announcements").update(input as never).eq("id", id);
+  if (error) throw error;
+};
+
+/* ----------------------------- App settings ----------------------------- */
+
+export type AppSettings = {
+  id: string;
+  institution_name: string;
+  registrar: string | null;
+  contact_email: string | null;
+  phone: string | null;
+  address: string | null;
+  academic_year: string | null;
+  default_term: string | null;
+  notify_attendance_digest: boolean;
+  notify_overdue_tuition: boolean;
+  notify_sms_faculty: boolean;
+};
+
+export const fetchSettings = async (): Promise<AppSettings> => {
+  const { data, error } = await supabase
+    .from("app_settings" as never)
+    .select("*")
+    .eq("id", "global")
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? { id: "global", institution_name: "Verdant Academy" }) as AppSettings;
+};
+
+export const updateSettings = async (input: Partial<Omit<AppSettings, "id">>) => {
+  const { error } = await supabase
+    .from("app_settings" as never)
+    .upsert({ id: "global", ...input } as never);
   if (error) throw error;
 };

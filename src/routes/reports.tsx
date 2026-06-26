@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Download } from "lucide-react";
-import { useQuery, fetchCourses, fetchStudents } from "@/lib/api";
+import { useQuery, fetchCourses, fetchStudents, fetchAttendance } from "@/lib/api";
+import { exportAnalyticsPdf } from "@/lib/export";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({
@@ -19,6 +21,7 @@ const monthlyEnrollment = [
 function ReportsPage() {
   const { data: courses } = useQuery(fetchCourses);
   const { data: students } = useQuery(fetchStudents);
+  const { data: attendance } = useQuery(fetchAttendance);
   const max = Math.max(...monthlyEnrollment.map((m) => m.value));
 
   const byDept = (courses ?? []).reduce<Record<string, number>>((acc, c) => {
@@ -38,6 +41,40 @@ function ReportsPage() {
       )
     : 0;
 
+  const attendanceRate = (() => {
+    const rows = attendance ?? [];
+    if (!rows.length) return 0;
+    const present = rows.filter((r) => r.status === "present").length;
+    return Math.round((present / rows.length) * 100);
+  })();
+
+  const handleExport = () => {
+    try {
+      exportAnalyticsPdf({
+        filename: "analytics-report",
+        title: "Term Analytics Report",
+        subtitle: `Generated ${new Date().toLocaleDateString()} · ${students?.length ?? 0} students · ${courses?.length ?? 0} courses`,
+        kpis: [
+          { label: "Avg GPA", value: avgGpa.toFixed(2) },
+          { label: "Fill rate", value: `${fillRate}%` },
+          { label: "Attendance", value: `${attendanceRate}%` },
+          { label: "Active students", value: String(students?.filter((s) => s.status === "Active").length ?? 0) },
+        ],
+        trend: {
+          title: "Enrollment trend · last 8 months",
+          bars: monthlyEnrollment.map((m) => ({ label: m.month, value: m.value })),
+        },
+        distribution: {
+          title: "Enrollment by department",
+          rows: Object.entries(byDept).map(([dept, count]) => ({ label: dept, count })),
+        },
+      });
+      toast.success("Report downloaded");
+    } catch (e) {
+      toast.error("Could not export: " + String(e));
+    }
+  };
+
   return (
     <AppShell>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -46,14 +83,15 @@ function ReportsPage() {
           <h1 className="mt-1 font-display text-4xl text-soil">Reports</h1>
           <p className="mt-1 text-soil/70">Term-over-term performance and enrollment trends.</p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl border border-sprout/40 bg-glass px-3 py-2 text-sm text-soil/80 hover:text-fern">
+        <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-xl border border-sprout/40 bg-glass px-3 py-2 text-sm text-soil/80 hover:text-fern">
           <Download className="size-4" /> Export PDF
         </button>
       </header>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Avg GPA (active)" value={avgGpa.toFixed(2)} />
         <Kpi label="Course fill rate" value={`${fillRate}%`} />
+        <Kpi label="Attendance rate" value={`${attendanceRate}%`} />
         <Kpi label="Retention" value="92.4%" />
       </div>
 

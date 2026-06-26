@@ -27,7 +27,17 @@ export const Route = createFileRoute("/library")({
   component: LibraryPage,
 });
 
-const emptyBookForm = { title: "", author: "", isbn: "", category: "", total_copies: 1 };
+const emptyBookForm = {
+  title: "",
+  author: "",
+  isbn: "",
+  category: "",
+  total_copies: 1,
+  publisher: "",
+  year_published: new Date().getFullYear(),
+  edition: "",
+  shelf: "",
+};
 
 function LibraryPage() {
   const { data: books, refetch } = useQuery(fetchBooks);
@@ -80,6 +90,10 @@ function LibraryPage() {
       isbn: b.isbn ?? "",
       category: b.category ?? "",
       total_copies: b.total_copies,
+      publisher: b.publisher ?? "",
+      year_published: b.year_published ?? new Date().getFullYear(),
+      edition: b.edition ?? "",
+      shelf: b.shelf ?? "",
     });
     setBookModalOpen(true);
   };
@@ -98,6 +112,10 @@ function LibraryPage() {
           category: bookForm.category || null,
           total_copies: newTotal,
           available_copies: Math.max(0, newTotal - onLoan),
+          publisher: bookForm.publisher || null,
+          year_published: Number(bookForm.year_published) || null,
+          edition: bookForm.edition || null,
+          shelf: bookForm.shelf || null,
         });
         toast.success("Book updated");
       } else {
@@ -107,6 +125,10 @@ function LibraryPage() {
           isbn: bookForm.isbn || null,
           category: bookForm.category || null,
           total_copies: Number(bookForm.total_copies),
+          publisher: bookForm.publisher || null,
+          year_published: Number(bookForm.year_published) || null,
+          edition: bookForm.edition || null,
+          shelf: bookForm.shelf || null,
         });
         toast.success("Book added");
       }
@@ -275,20 +297,48 @@ function LibraryPage() {
         </section>
       )}
 
-      <Modal open={bookModalOpen} onClose={() => { setBookModalOpen(false); setEditing(null); }} title={editing ? "Edit book" : "Add book"}>
+      <Modal size="lg" open={bookModalOpen} onClose={() => { setBookModalOpen(false); setEditing(null); }} title={editing ? "Edit book" : "Add book to catalog"}>
         <form onSubmit={submitBook} className="space-y-4">
-          <Field label="Title">
-            <input required className={inputClass} value={bookForm.title} onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })} />
-          </Field>
-          <Field label="Author">
-            <input required className={inputClass} value={bookForm.author} onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Title">
+              <input required className={inputClass} value={bookForm.title} onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })} />
+            </Field>
+            <Field label="Author">
+              <input required className={inputClass} value={bookForm.author} onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Publisher">
+              <input className={inputClass} value={bookForm.publisher} onChange={(e) => setBookForm({ ...bookForm, publisher: e.target.value })} />
+            </Field>
+            <Field label="Year published">
+              <input type="number" min={1500} max={new Date().getFullYear()} className={inputClass} value={bookForm.year_published} onChange={(e) => setBookForm({ ...bookForm, year_published: Number(e.target.value) })} />
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="ISBN">
-              <input className={inputClass} value={bookForm.isbn} onChange={(e) => setBookForm({ ...bookForm, isbn: e.target.value })} />
+              <input className={inputClass} placeholder="978-3-16-148410-0" value={bookForm.isbn} onChange={(e) => setBookForm({ ...bookForm, isbn: e.target.value })} />
             </Field>
+            <Field label="Edition">
+              <input className={inputClass} placeholder="3rd edition" value={bookForm.edition} onChange={(e) => setBookForm({ ...bookForm, edition: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <Field label="Category">
-              <input className={inputClass} value={bookForm.category} onChange={(e) => setBookForm({ ...bookForm, category: e.target.value })} />
+              <select className={inputClass} value={bookForm.category} onChange={(e) => setBookForm({ ...bookForm, category: e.target.value })}>
+                <option value="">General</option>
+                <option>Fiction</option>
+                <option>Reference</option>
+                <option>Science</option>
+                <option>Mathematics</option>
+                <option>History</option>
+                <option>Literature</option>
+                <option>Biography</option>
+                <option>Technology</option>
+              </select>
+            </Field>
+            <Field label="Shelf location">
+              <input className={inputClass} placeholder="A-12" value={bookForm.shelf} onChange={(e) => setBookForm({ ...bookForm, shelf: e.target.value })} />
             </Field>
           </div>
           <Field label="Total copies">

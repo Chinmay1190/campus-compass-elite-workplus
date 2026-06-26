@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { CalendarCheck, X, Clock } from "lucide-react";
-import { useMemo } from "react";
+import { CalendarCheck, X, Clock, ClipboardList, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Modal, Field, inputClass } from "@/components/Modal";
 import {
   useQuery,
   fetchStudents,
+  fetchCourses,
   fetchAttendance,
   markAttendance,
+  markAttendanceBulk,
   type Student,
   type AttendanceRow,
 } from "@/lib/api";
@@ -45,6 +48,7 @@ function AttendancePage() {
   const { hasRole } = useAuth();
   const canEdit = hasRole("admin") || hasRole("teacher");
   const { data: students } = useQuery(fetchStudents);
+  const { data: courses } = useQuery(fetchCourses);
   const { data: records, refetch } = useQuery(fetchAttendance);
 
   const dates = useMemo(() => lastWeekdays(5), []);
@@ -82,6 +86,52 @@ function AttendancePage() {
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
 
+  /* ---- Take-attendance modal ---- */
+  const [takeOpen, setTakeOpen] = useState(false);
+  const [takeCourse, setTakeCourse] = useState<string>("");
+  const [takeDate, setTakeDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [marks, setMarks] = useState<Record<string, Status>>({});
+  const [saving, setSaving] = useState(false);
+
+  const courseRoster = useMemo(
+    () => (students ?? []).filter((s) => s.course_id === takeCourse && s.status === "Active"),
+    [students, takeCourse],
+  );
+
+  const openTake = () => {
+    setTakeCourse(courses?.[0]?.id ?? "");
+    setTakeDate(new Date().toISOString().slice(0, 10));
+    setMarks({});
+    setTakeOpen(true);
+  };
+
+  const setMark = (sid: string, st: Status) => setMarks((m) => ({ ...m, [sid]: st }));
+  const markAll = (st: Status) =>
+    setMarks(() => Object.fromEntries(courseRoster.map((s) => [s.id, st])));
+
+  const submitTake = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!takeCourse || !takeDate || courseRoster.length === 0) return;
+    setSaving(true);
+    try {
+      // Default unmarked students to "absent"
+      const payload = courseRoster.map((s) => ({
+        student_id: s.id,
+        course_id: takeCourse,
+        date: takeDate,
+        status: (marks[s.id] ?? "absent") as Status,
+      }));
+      await markAttendanceBulk(payload);
+      toast.success(`Attendance saved for ${payload.length} student${payload.length === 1 ? "" : "s"}`);
+      setTakeOpen(false);
+      await refetch();
+    } catch (err) {
+      toast.error("Could not save attendance: " + String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const attRows: AttRow[] = useMemo(() => {
     return roster.map((s) => {
       const row: AttRow = { student: s.full_name, student_no: s.student_no, course: s.course?.code ?? "" };
@@ -109,6 +159,15 @@ function AttendancePage() {
             {roster.length} students tracked{canEdit ? " · tap a cell to update" : ""}
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && (
+            <button
+              onClick={openTake}
+              className="inline-flex items-center gap-2 rounded-xl bg-fern px-4 py-2 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90"
+            >
+              <Plus className="size-4" /> Take attendance
+            </button>
+          )}
         <ExportMenu
           filename="attendance"
           title="Attendance Report"
@@ -117,6 +176,7 @@ function AttendancePage() {
           rows={attRows}
           orientation="landscape"
         />
+        </div>
       </header>
 
       <div className="mb-6 grid grid-cols-3 gap-4">
@@ -188,6 +248,86 @@ function AttendancePage() {
           </table>
         </div>
       </div>
+
+      <Modal size="xl" open={takeOpen} onClose={() => setTakeOpen(false)} title="Take attendance">
+        <form onSubmit={submitTake} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Course">
+              <select required className={inputClass} value={takeCourse} onChange={(e) => { setTakeCourse(e.target.value); setMarks({}); }}>
+                <option value="">Select course…</option>
+                {(courses ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>{c.code} — {c.title}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Date">
+              <input required type="date" max={new Date().toISOString().slice(0,10)} className={inputClass} value={takeDate} onChange={(e) => setTakeDate(e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist/60 px-3 py-2 text-xs">
+            <span className="text-soil/70">
+              {courseRoster.length} active student{courseRoster.length === 1 ? "" : "s"} ·
+              unmarked will be saved as <strong className="text-destructive">Absent</strong>
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-soil/60">Mark all:</span>
+              <button type="button" onClick={() => markAll("present")} className="rounded-md bg-success/15 px-2 py-1 text-success">Present</button>
+              <button type="button" onClick={() => markAll("late")} className="rounded-md bg-warning/20 px-2 py-1 text-warning-foreground">Late</button>
+              <button type="button" onClick={() => markAll("absent")} className="rounded-md bg-destructive/10 px-2 py-1 text-destructive">Absent</button>
+            </div>
+          </div>
+
+          <div className="max-h-[50vh] overflow-y-auto rounded-xl border border-sprout/30">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-mist/80 text-left text-xs uppercase tracking-wider text-soil/60">
+                <tr>
+                  <th className="py-2 pl-4 pr-3">Student</th>
+                  <th className="py-2 px-3 text-center">Present</th>
+                  <th className="py-2 px-3 text-center">Late</th>
+                  <th className="py-2 px-3 text-center">Absent</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sprout/20">
+                {courseRoster.map((s) => {
+                  const cur = marks[s.id];
+                  return (
+                    <tr key={s.id}>
+                      <td className="py-2.5 pl-4 pr-3">
+                        <div className="font-medium text-soil">{s.full_name}</div>
+                        <div className="text-xs text-soil/60">{s.student_no}</div>
+                      </td>
+                      {(["present", "late", "absent"] as Status[]).map((opt) => (
+                        <td key={opt} className="px-3 py-2.5 text-center">
+                          <input
+                            type="radio"
+                            name={`att-${s.id}`}
+                            checked={cur === opt}
+                            onChange={() => setMark(s.id, opt)}
+                            className="size-4 accent-fern"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {courseRoster.length === 0 && (
+                  <tr><td colSpan={4} className="py-6 text-center text-sm text-soil/60">No active students in this course.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving || courseRoster.length === 0}
+            className="w-full rounded-xl bg-fern px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-50"
+          >
+            <ClipboardList className="inline size-4 mr-1" />
+            {saving ? "Saving…" : `Save attendance (${courseRoster.length})`}
+          </button>
+        </form>
+      </Modal>
     </AppShell>
   );
 }

@@ -34,7 +34,16 @@ function ExamsPage() {
   const canEdit = hasRole("admin") || hasRole("teacher");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ course_id: "", title: "", exam_date: "", total_marks: 100 });
+  const [form, setForm] = useState({
+    course_id: "",
+    title: "",
+    exam_date: "",
+    start_time: "09:00",
+    duration_minutes: 90,
+    total_marks: 100,
+    location: "",
+    instructions: "",
+  });
 
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = (exams ?? []).filter((e) => e.exam_date >= today).sort((a, b) => a.exam_date.localeCompare(b.exam_date));
@@ -104,10 +113,19 @@ function ExamsPage() {
     if (!form.course_id) return;
     setSaving(true);
     try {
-      await scheduleExam({ ...form, total_marks: Number(form.total_marks) });
+      await scheduleExam({
+        course_id: form.course_id,
+        title: form.title,
+        exam_date: form.exam_date,
+        total_marks: Number(form.total_marks),
+        duration_minutes: Number(form.duration_minutes) || null,
+        start_time: form.start_time || null,
+        location: form.location || null,
+        instructions: form.instructions || null,
+      });
       toast.success("Exam scheduled");
       setOpen(false);
-      setForm({ course_id: "", title: "", exam_date: "", total_marks: 100 });
+      setForm({ course_id: "", title: "", exam_date: "", start_time: "09:00", duration_minutes: 90, total_marks: 100, location: "", instructions: "" });
       await refetch();
     } catch (err) {
       toast.error("Could not schedule exam: " + String(err));
@@ -170,6 +188,9 @@ function ExamsPage() {
                   </div>
                   <p className="mt-0.5 text-xs text-soil/60">
                     {e.course?.title} · {e.total_marks} marks
+                    {e.start_time ? ` · ${e.start_time.slice(0,5)}` : ""}
+                    {e.duration_minutes ? ` · ${e.duration_minutes} min` : ""}
+                    {e.location ? ` · ${e.location}` : ""}
                   </p>
                 </div>
                 <div className="rounded-lg bg-fern px-3 py-1.5 text-xs font-medium text-primary-foreground">
@@ -219,7 +240,7 @@ function ExamsPage() {
         </div>
       </section>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Schedule exam">
+      <Modal size="lg" open={open} onClose={() => setOpen(false)} title="Schedule new exam">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Course">
             <select required className={inputClass} value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
@@ -229,17 +250,31 @@ function ExamsPage() {
               ))}
             </select>
           </Field>
-          <Field label="Title">
-            <input required className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <Field label="Exam title">
+            <input required placeholder="Midterm · Final · Quiz 2" className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Date">
-              <input required type="date" className={inputClass} value={form.exam_date} onChange={(e) => setForm({ ...form, exam_date: e.target.value })} />
+              <input required type="date" min={new Date().toISOString().slice(0,10)} className={inputClass} value={form.exam_date} onChange={(e) => setForm({ ...form, exam_date: e.target.value })} />
+            </Field>
+            <Field label="Start time">
+              <input type="time" className={inputClass} value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Duration (minutes)">
+              <input type="number" min={15} step={15} className={inputClass} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
             </Field>
             <Field label="Total marks">
               <input type="number" min={1} className={inputClass} value={form.total_marks} onChange={(e) => setForm({ ...form, total_marks: Number(e.target.value) })} />
             </Field>
           </div>
+          <Field label="Location / Room">
+            <input className={inputClass} placeholder="Hall B · Room 305" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+          </Field>
+          <Field label="Instructions for students">
+            <textarea rows={3} className={inputClass} placeholder="Permitted materials, calculator policy, ID required…" value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} />
+          </Field>
           <button type="submit" disabled={saving} className="w-full rounded-xl bg-fern px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-50">
             {saving ? "Saving…" : "Schedule exam"}
           </button>
