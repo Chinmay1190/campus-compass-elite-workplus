@@ -181,6 +181,36 @@ function SignupPage() {
             <Field label="Email address" icon={Mail} type="email" value={email} onChange={setEmail} placeholder="you@academy.edu" error={errors.email} autoComplete="email" />
 
             <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-soil/60">I am a</span>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                {([
+                  { value: "student", label: "Student", icon: UsersIcon },
+                  { value: "teacher", label: "Teacher", icon: UserCog },
+                ] as const).map(({ value, label, icon: Icon }) => {
+                  const active = role === value;
+                  return (
+                    <button
+                      type="button"
+                      key={value}
+                      onClick={() => setRole(value)}
+                      className={
+                        "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-all " +
+                        (active
+                          ? "border-fern bg-fern text-primary-foreground shadow-soft"
+                          : "border-sprout/70 bg-glass text-soil/70 hover:border-fern hover:text-fern")
+                      }
+                    >
+                      <Icon className="size-4" />
+                      <span className="font-medium">{label}</span>
+                      {active && <Check className="ml-auto size-4" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11px] text-soil/55">Admin accounts are provisioned by your institution.</p>
+            </div>
+
+            <div>
               <Field
                 label="Password"
                 icon={Lock}
