@@ -19,23 +19,31 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { useAuth } from "@/lib/auth";
+import { useAuth, type AppRole } from "@/lib/auth";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
-const nav = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/students", label: "Student Records", icon: Users },
-  { to: "/courses", label: "Course Catalog", icon: GraduationCap },
-  { to: "/attendance", label: "Attendance", icon: CalendarCheck },
-  { to: "/exams", label: "Exams & Grades", icon: ClipboardList },
-  { to: "/fees", label: "Financial Aid", icon: Wallet },
-  { to: "/teachers", label: "Faculty", icon: UserCog },
-  { to: "/library", label: "Library", icon: BookOpen },
-  { to: "/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/calendar", label: "Calendar", icon: Calendar },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: Settings },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: AppRole[]; // who can see it
+};
+
+const ALL: AppRole[] = ["admin", "teacher", "student"];
+const nav: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
+  { to: "/students", label: "Student Records", icon: Users, roles: ["admin", "teacher"] },
+  { to: "/courses", label: "Course Catalog", icon: GraduationCap, roles: ALL },
+  { to: "/attendance", label: "Attendance", icon: CalendarCheck, roles: ALL },
+  { to: "/exams", label: "Exams & Grades", icon: ClipboardList, roles: ALL },
+  { to: "/fees", label: "Financial Aid", icon: Wallet, roles: ["admin", "student"] },
+  { to: "/teachers", label: "Faculty", icon: UserCog, roles: ["admin", "teacher"] },
+  { to: "/library", label: "Library", icon: BookOpen, roles: ALL },
+  { to: "/announcements", label: "Announcements", icon: Megaphone, roles: ALL },
+  { to: "/calendar", label: "Calendar", icon: Calendar, roles: ALL },
+  { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "teacher"] },
+  { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -54,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "VA";
   const primaryRole = roles[0] ?? "guest";
+  const visibleNav = nav.filter((n) => n.roles.some((r) => roles.includes(r)));
 
   return (
     <div className="flex min-h-dvh bg-mist text-soil">
@@ -71,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1">
-          {nav.map(({ to, label, icon: Icon }) => {
+          {visibleNav.map(({ to, label, icon: Icon }) => {
             const active =
               to === "/" ? pathname === "/" : pathname.startsWith(to);
             return (
