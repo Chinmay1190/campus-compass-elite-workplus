@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { GraduationCap, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, ShieldCheck, Sparkles, BookOpen, MailCheck } from "lucide-react";
+import { GraduationCap, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, ShieldCheck, Sparkles, BookOpen, MailCheck, Users as UsersIcon, UserCog } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ const schema = z
     email: z.string().trim().email("Enter a valid email").max(255),
     password: z.string().min(8, "Minimum 8 characters").max(128),
     confirm: z.string(),
+    role: z.enum(["student", "teacher"]),
   })
   .refine((d) => d.password === d.confirm, { message: "Passwords do not match", path: ["confirm"] });
 
@@ -38,6 +39,7 @@ function SignupPage() {
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [role, setRole] = useState<"student" | "teacher">("student");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,7 +49,7 @@ function SignupPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ firstName, lastName, email, password, confirm });
+    const parsed = schema.safeParse({ firstName, lastName, email, password, confirm, role });
     if (!parsed.success) {
       const fe: Record<string, string> = {};
       parsed.error.issues.forEach((i) => (fe[i.path[0] as string] = i.message));
@@ -65,7 +67,7 @@ function SignupPage() {
       password: parsed.data.password,
       options: {
         emailRedirectTo: `${window.location.origin}/profile`,
-        data: { first_name: parsed.data.firstName, last_name: parsed.data.lastName },
+        data: { first_name: parsed.data.firstName, last_name: parsed.data.lastName, role: parsed.data.role },
       },
     });
     setBusy(false);
@@ -177,6 +179,36 @@ function SignupPage() {
               <Field label="Last name" icon={User} value={lastName} onChange={setLastName} error={errors.lastName} autoComplete="family-name" />
             </div>
             <Field label="Email address" icon={Mail} type="email" value={email} onChange={setEmail} placeholder="you@academy.edu" error={errors.email} autoComplete="email" />
+
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-soil/60">I am a</span>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                {([
+                  { value: "student", label: "Student", icon: UsersIcon },
+                  { value: "teacher", label: "Teacher", icon: UserCog },
+                ] as const).map(({ value, label, icon: Icon }) => {
+                  const active = role === value;
+                  return (
+                    <button
+                      type="button"
+                      key={value}
+                      onClick={() => setRole(value)}
+                      className={
+                        "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition-all " +
+                        (active
+                          ? "border-fern bg-fern text-primary-foreground shadow-soft"
+                          : "border-sprout/70 bg-glass text-soil/70 hover:border-fern hover:text-fern")
+                      }
+                    >
+                      <Icon className="size-4" />
+                      <span className="font-medium">{label}</span>
+                      {active && <Check className="ml-auto size-4" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[11px] text-soil/55">Admin accounts are provisioned by your institution.</p>
+            </div>
 
             <div>
               <Field
