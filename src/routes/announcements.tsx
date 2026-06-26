@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Megaphone, Plus, Users, GraduationCap, Shield, Globe, Trash2, Pencil } from "lucide-react";
+import { Megaphone, Plus, Users, GraduationCap, Shield, Globe, Trash2, Pencil, Pin } from "lucide-react";
 import { useState } from "react";
-import { useQuery, fetchAnnouncements, deleteAnnouncement, updateAnnouncement, type Announcement } from "@/lib/api";
+import { useQuery, fetchAnnouncements, deleteAnnouncement, updateAnnouncement, createAnnouncement, type Announcement } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ExportMenu } from "@/components/ExportMenu";
 import type { ExportColumn } from "@/lib/export";
@@ -32,6 +31,9 @@ function AnnouncementsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState("all");
+  const [priority, setPriority] = useState<"normal" | "important" | "urgent">("normal");
+  const [pinned, setPinned] = useState(false);
+  const [expires_at, setExpiresAt] = useState("");
   const [busy, setBusy] = useState(false);
 
   const resetForm = () => {
@@ -39,6 +41,9 @@ function AnnouncementsPage() {
     setTitle("");
     setBody("");
     setAudience("all");
+    setPriority("normal");
+    setPinned(false);
+    setExpiresAt("");
   };
 
   const openCreate = () => {
@@ -51,6 +56,9 @@ function AnnouncementsPage() {
     setTitle(a.title);
     setBody(a.body);
     setAudience(a.audience);
+    setPriority(a.priority ?? "normal");
+    setPinned(!!a.pinned);
+    setExpiresAt(a.expires_at ?? "");
     setShowForm(true);
   };
 
@@ -65,12 +73,19 @@ function AnnouncementsPage() {
     e.preventDefault();
     setBusy(true);
     try {
+      const payload = {
+        title,
+        body,
+        audience,
+        priority,
+        pinned,
+        expires_at: expires_at || null,
+      };
       if (editingId) {
-        await updateAnnouncement(editingId, { title, body, audience });
+        await updateAnnouncement(editingId, payload);
         toast.success("Announcement updated");
       } else {
-        const { error } = await supabase.from("announcements").insert({ title, body, audience });
-        if (error) throw error;
+        await createAnnouncement(payload);
         toast.success("Announcement posted");
       }
       resetForm();
@@ -81,6 +96,19 @@ function AnnouncementsPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const sorted = (announcements ?? [])
+    .slice()
+    .sort((a, b) => {
+      if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+      return b.created_at.localeCompare(a.created_at);
+    });
+
+  const priorityStyles: Record<string, string> = {
+    normal: "bg-mist text-soil/70",
+    important: "bg-warning/20 text-warning-foreground",
+    urgent: "bg-destructive/15 text-destructive",
   };
 
   return (
@@ -128,6 +156,7 @@ function AnnouncementsPage() {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
               className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern"
             />
           </div>
@@ -138,22 +167,38 @@ function AnnouncementsPage() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
+              maxLength={1000}
               className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern"
             />
+            <div className="mt-1 text-right text-[10px] text-soil/50">{body.length}/1000</div>
           </div>
-          <div>
-            <label className="text-xs font-medium text-soil/70">Audience</label>
-            <select
-              value={audience}
-              onChange={(e) => setAudience(e.target.value)}
-              className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern"
-            >
-              <option value="all">Everyone</option>
-              <option value="students">Students</option>
-              <option value="teachers">Faculty</option>
-              <option value="admin">Admin</option>
-            </select>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-medium text-soil/70">Audience</label>
+              <select value={audience} onChange={(e) => setAudience(e.target.value)} className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern">
+                <option value="all">Everyone</option>
+                <option value="students">Students</option>
+                <option value="teachers">Faculty</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-soil/70">Priority</label>
+              <select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)} className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern">
+                <option value="normal">Normal</option>
+                <option value="important">Important</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-soil/70">Expires on</label>
+              <input type="date" value={expires_at} onChange={(e) => setExpiresAt(e.target.value)} className="mt-1.5 w-full rounded-xl border border-sprout/40 bg-mist/60 px-3 py-2 text-sm outline-none focus:border-fern" />
+            </div>
           </div>
+          <label className="flex items-center gap-2 text-sm text-soil/80">
+            <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="rounded border-sprout/50 text-fern focus:ring-fern" />
+            Pin to top of feed
+          </label>
           <div className="flex justify-end">
             <button
               disabled={busy}
@@ -166,10 +211,10 @@ function AnnouncementsPage() {
       )}
 
       <div className="space-y-4">
-        {(announcements ?? []).map((a) => {
+        {sorted.map((a) => {
           const Icon = audienceIcon[a.audience] ?? Megaphone;
           return (
-            <article key={a.id} className="rounded-2xl border border-sprout/30 bg-glass p-6 shadow-soft">
+            <article key={a.id} className={`rounded-2xl border bg-glass p-6 shadow-soft ${a.priority === "urgent" ? "border-destructive/40" : a.priority === "important" ? "border-warning/50" : "border-sprout/30"}`}>
               <div className="flex items-start gap-4">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-sprout/30 text-fern">
                   <Icon className="size-5" />
@@ -177,6 +222,16 @@ function AnnouncementsPage() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <h3 className="text-lg font-semibold text-soil">{a.title}</h3>
+                    {a.pinned && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-fern/10 px-2 py-0.5 text-[10px] font-medium text-fern">
+                        <Pin className="size-3" /> Pinned
+                      </span>
+                    )}
+                    {a.priority && a.priority !== "normal" && (
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${priorityStyles[a.priority]}`}>
+                        {a.priority}
+                      </span>
+                    )}
                     <span className="rounded-full bg-mist px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-fern">
                       {a.audience}
                     </span>
@@ -211,6 +266,7 @@ function AnnouncementsPage() {
                   <p className="mt-2 text-sm text-soil/80">{a.body}</p>
                   <p className="mt-3 text-xs text-soil/60">
                     {new Date(a.created_at).toLocaleString()}
+                    {a.expires_at ? ` · expires ${a.expires_at}` : ""}
                   </p>
                 </div>
               </div>

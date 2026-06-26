@@ -22,6 +22,10 @@ const emptyForm = {
   department: "",
   title: "Lecturer",
   joined_year: new Date().getFullYear(),
+  phone: "",
+  qualification: "",
+  specialization: "",
+  office: "",
 };
 
 function TeachersPage() {
@@ -54,6 +58,10 @@ function TeachersPage() {
       department: t.department,
       title: t.title,
       joined_year: t.joined_year ?? new Date().getFullYear(),
+      phone: t.phone ?? "",
+      qualification: t.qualification ?? "",
+      specialization: t.specialization ?? "",
+      office: t.office ?? "",
     });
     setOpen(true);
   };
@@ -62,7 +70,14 @@ function TeachersPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, joined_year: Number(form.joined_year) };
+      const payload = {
+        ...form,
+        joined_year: Number(form.joined_year),
+        phone: form.phone || null,
+        qualification: form.qualification || null,
+        specialization: form.specialization || null,
+        office: form.office || null,
+      };
       if (editing) {
         await updateTeacher(editing.id, payload);
         toast.success("Faculty member updated");
@@ -165,14 +180,24 @@ function TeachersPage() {
         {!teachers && <div className="text-sm text-soil/50">Loading…</div>}
       </div>
 
-      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit faculty member" : "Add faculty member"}>
+      <Modal size="lg" open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit faculty member" : "Add faculty member"}>
         <form onSubmit={submit} className="space-y-4">
-          <Field label="Full name">
-            <input required className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-          </Field>
-          <Field label="Email">
-            <input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Full name">
+              <input required className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+            </Field>
+            <Field label="Email">
+              <input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Phone">
+              <input type="tel" className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </Field>
+            <Field label="Office">
+              <input className={inputClass} placeholder="Bldg A · Room 214" value={form.office} onChange={(e) => setForm({ ...form, office: e.target.value })} />
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Department">
               <input required className={inputClass} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
@@ -183,11 +208,20 @@ function TeachersPage() {
                 <option>Assistant Professor</option>
                 <option>Associate Professor</option>
                 <option>Professor</option>
+                <option>Department Head</option>
               </select>
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Qualification">
+              <input className={inputClass} placeholder="Ph.D., M.Sc., etc." value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })} />
+            </Field>
+            <Field label="Specialization">
+              <input className={inputClass} placeholder="Molecular Biology" value={form.specialization} onChange={(e) => setForm({ ...form, specialization: e.target.value })} />
+            </Field>
+          </div>
           <Field label="Joined year">
-            <input type="number" className={inputClass} value={form.joined_year} onChange={(e) => setForm({ ...form, joined_year: Number(e.target.value) })} />
+            <input type="number" min={1950} max={new Date().getFullYear()} className={inputClass} value={form.joined_year} onChange={(e) => setForm({ ...form, joined_year: Number(e.target.value) })} />
           </Field>
           <button
             type="submit"

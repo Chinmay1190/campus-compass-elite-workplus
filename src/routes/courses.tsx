@@ -24,6 +24,8 @@ const emptyForm = {
   capacity: 30,
   schedule: "",
   instructor_id: "",
+  description: "",
+  semester: "Fall",
 };
 
 function CoursesPage() {
@@ -60,6 +62,8 @@ function CoursesPage() {
       capacity: c.capacity,
       schedule: c.schedule ?? "",
       instructor_id: c.instructor_id ?? "",
+      description: c.description ?? "",
+      semester: c.semester ?? "Fall",
     });
     setOpen(true);
   };
@@ -76,6 +80,8 @@ function CoursesPage() {
         capacity: Number(form.capacity),
         schedule: form.schedule || null,
         instructor_id: form.instructor_id || null,
+        description: form.description || null,
+        semester: form.semester || null,
       };
       if (editing) {
         await updateCourse(editing.id, payload);
@@ -198,18 +204,21 @@ function CoursesPage() {
         {!courses && <div className="text-sm text-soil/50">Loading…</div>}
       </div>
 
-      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit course" : "New course"}>
+      <Modal size="lg" open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit course" : "Create new course"}>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Code">
-              <input required className={inputClass} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+            <Field label="Course code">
+              <input required placeholder="BIO-201" className={inputClass} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} />
             </Field>
             <Field label="Department">
               <input required className={inputClass} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </Field>
           </div>
-          <Field label="Title">
+          <Field label="Course title">
             <input required className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          </Field>
+          <Field label="Description">
+            <textarea rows={3} className={inputClass} placeholder="What students will learn and assessment overview" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </Field>
           <Field label="Instructor">
             <select className={inputClass} value={form.instructor_id} onChange={(e) => setForm({ ...form, instructor_id: e.target.value })}>
@@ -219,9 +228,16 @@ function CoursesPage() {
               ))}
             </select>
           </Field>
-          <Field label="Schedule">
-            <input className={inputClass} placeholder="Mon/Wed 09:00-10:30" value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Semester">
+              <select className={inputClass} value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })}>
+                {["Spring","Summer","Fall","Winter"].map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </Field>
+            <Field label="Schedule">
+              <input className={inputClass} placeholder="Mon/Wed 09:00–10:30" value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} />
+            </Field>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Credits">
               <input type="number" min={1} className={inputClass} value={form.credits} onChange={(e) => setForm({ ...form, credits: Number(e.target.value) })} />

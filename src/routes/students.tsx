@@ -26,7 +26,19 @@ export const Route = createFileRoute("/students")({
 
 const filters = ["All", "Active", "Pending", "On Leave", "Graduated"] as const;
 
-const emptyForm = { full_name: "", email: "", course_id: "", year: 1, status: "Active" };
+const emptyForm = {
+  full_name: "",
+  email: "",
+  phone: "",
+  date_of_birth: "",
+  gender: "",
+  address: "",
+  guardian_name: "",
+  guardian_phone: "",
+  course_id: "",
+  year: 1,
+  status: "Active",
+};
 
 function StudentsPage() {
   const { data: students, refetch } = useQuery(fetchStudents);
@@ -50,6 +62,12 @@ function StudentsPage() {
     setForm({
       full_name: s.full_name,
       email: s.email,
+      phone: s.phone ?? "",
+      date_of_birth: s.date_of_birth ?? "",
+      gender: s.gender ?? "",
+      address: s.address ?? "",
+      guardian_name: s.guardian_name ?? "",
+      guardian_phone: s.guardian_phone ?? "",
       course_id: s.course_id ?? "",
       year: s.year,
       status: s.status,
@@ -64,6 +82,12 @@ function StudentsPage() {
       const payload = {
         full_name: form.full_name,
         email: form.email,
+        phone: form.phone || null,
+        date_of_birth: form.date_of_birth || null,
+        gender: form.gender || null,
+        address: form.address || null,
+        guardian_name: form.guardian_name || null,
+        guardian_phone: form.guardian_phone || null,
         course_id: form.course_id || null,
         year: Number(form.year),
         status: form.status,
@@ -239,14 +263,51 @@ function StudentsPage() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit student" : "Enroll student"}>
+      <Modal size="lg" open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "Edit student" : "Enroll new student"}>
         <form onSubmit={submit} className="space-y-4">
-          <Field label="Full name">
-            <input required className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-          </Field>
-          <Field label="Email">
-            <input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </Field>
+          <div className="text-xs font-medium uppercase tracking-wider text-fern">Personal details</div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Full name">
+              <input required className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+            </Field>
+            <Field label="Email">
+              <input required type="email" className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Phone">
+              <input type="tel" className={inputClass} placeholder="+1 415 555 0100" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            </Field>
+            <Field label="Date of birth">
+              <input type="date" className={inputClass} value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Gender">
+              <select className={inputClass} value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                <option value="">Prefer not to say</option>
+                <option>Female</option>
+                <option>Male</option>
+                <option>Non-binary</option>
+                <option>Other</option>
+              </select>
+            </Field>
+            <Field label="Address">
+              <input className={inputClass} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            </Field>
+          </div>
+
+          <div className="pt-2 text-xs font-medium uppercase tracking-wider text-fern">Guardian</div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Guardian name">
+              <input className={inputClass} value={form.guardian_name} onChange={(e) => setForm({ ...form, guardian_name: e.target.value })} />
+            </Field>
+            <Field label="Guardian phone">
+              <input type="tel" className={inputClass} value={form.guardian_phone} onChange={(e) => setForm({ ...form, guardian_phone: e.target.value })} />
+            </Field>
+          </div>
+
+          <div className="pt-2 text-xs font-medium uppercase tracking-wider text-fern">Academic</div>
           <Field label="Course">
             <select className={inputClass} value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
               <option value="">No course yet</option>

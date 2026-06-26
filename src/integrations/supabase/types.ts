@@ -20,7 +20,10 @@ export type Database = {
           author_id: string | null
           body: string
           created_at: string
+          expires_at: string | null
           id: string
+          pinned: boolean
+          priority: string
           title: string
         }
         Insert: {
@@ -28,7 +31,10 @@ export type Database = {
           author_id?: string | null
           body: string
           created_at?: string
+          expires_at?: string | null
           id?: string
+          pinned?: boolean
+          priority?: string
           title: string
         }
         Update: {
@@ -36,8 +42,56 @@ export type Database = {
           author_id?: string | null
           body?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
+          pinned?: boolean
+          priority?: string
           title?: string
+        }
+        Relationships: []
+      }
+      app_settings: {
+        Row: {
+          academic_year: string | null
+          address: string | null
+          contact_email: string | null
+          default_term: string | null
+          id: string
+          institution_name: string
+          notify_attendance_digest: boolean
+          notify_overdue_tuition: boolean
+          notify_sms_faculty: boolean
+          phone: string | null
+          registrar: string | null
+          updated_at: string
+        }
+        Insert: {
+          academic_year?: string | null
+          address?: string | null
+          contact_email?: string | null
+          default_term?: string | null
+          id?: string
+          institution_name?: string
+          notify_attendance_digest?: boolean
+          notify_overdue_tuition?: boolean
+          notify_sms_faculty?: boolean
+          phone?: string | null
+          registrar?: string | null
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string | null
+          address?: string | null
+          contact_email?: string | null
+          default_term?: string | null
+          id?: string
+          institution_name?: string
+          notify_attendance_digest?: boolean
+          notify_overdue_tuition?: boolean
+          notify_sms_faculty?: boolean
+          phone?: string | null
+          registrar?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -138,9 +192,11 @@ export type Database = {
           created_at: string
           credits: number
           department: string
+          description: string | null
           id: string
           instructor_id: string | null
           schedule: string | null
+          semester: string | null
           title: string
           updated_at: string
         }
@@ -150,9 +206,11 @@ export type Database = {
           created_at?: string
           credits?: number
           department: string
+          description?: string | null
           id?: string
           instructor_id?: string | null
           schedule?: string | null
+          semester?: string | null
           title: string
           updated_at?: string
         }
@@ -162,9 +220,11 @@ export type Database = {
           created_at?: string
           credits?: number
           department?: string
+          description?: string | null
           id?: string
           instructor_id?: string | null
           schedule?: string | null
+          semester?: string | null
           title?: string
           updated_at?: string
         }
@@ -218,24 +278,36 @@ export type Database = {
         Row: {
           course_id: string
           created_at: string
+          duration_minutes: number | null
           exam_date: string
           id: string
+          instructions: string | null
+          location: string | null
+          start_time: string | null
           title: string
           total_marks: number
         }
         Insert: {
           course_id: string
           created_at?: string
+          duration_minutes?: number | null
           exam_date: string
           id?: string
+          instructions?: string | null
+          location?: string | null
+          start_time?: string | null
           title: string
           total_marks?: number
         }
         Update: {
           course_id?: string
           created_at?: string
+          duration_minutes?: number | null
           exam_date?: string
           id?: string
+          instructions?: string | null
+          location?: string | null
+          start_time?: string | null
           title?: string
           total_marks?: number
         }
@@ -344,33 +416,45 @@ export type Database = {
           available_copies: number
           category: string | null
           created_at: string
+          edition: string | null
           id: string
           isbn: string | null
+          publisher: string | null
+          shelf: string | null
           title: string
           total_copies: number
           updated_at: string
+          year_published: number | null
         }
         Insert: {
           author: string
           available_copies?: number
           category?: string | null
           created_at?: string
+          edition?: string | null
           id?: string
           isbn?: string | null
+          publisher?: string | null
+          shelf?: string | null
           title: string
           total_copies?: number
           updated_at?: string
+          year_published?: number | null
         }
         Update: {
           author?: string
           available_copies?: number
           category?: string | null
           created_at?: string
+          edition?: string | null
           id?: string
           isbn?: string | null
+          publisher?: string | null
+          shelf?: string | null
           title?: string
           total_copies?: number
           updated_at?: string
+          year_published?: number | null
         }
         Relationships: []
       }
@@ -406,13 +490,19 @@ export type Database = {
       }
       students: {
         Row: {
+          address: string | null
           course_id: string | null
           created_at: string
+          date_of_birth: string | null
           email: string
           enrolled_on: string
           full_name: string
+          gender: string | null
           gpa: number | null
+          guardian_name: string | null
+          guardian_phone: string | null
           id: string
+          phone: string | null
           status: string
           student_no: string
           updated_at: string
@@ -420,13 +510,19 @@ export type Database = {
           year: number
         }
         Insert: {
+          address?: string | null
           course_id?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email: string
           enrolled_on?: string
           full_name: string
+          gender?: string | null
           gpa?: number | null
+          guardian_name?: string | null
+          guardian_phone?: string | null
           id?: string
+          phone?: string | null
           status?: string
           student_no: string
           updated_at?: string
@@ -434,13 +530,19 @@ export type Database = {
           year?: number
         }
         Update: {
+          address?: string | null
           course_id?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string
           enrolled_on?: string
           full_name?: string
+          gender?: string | null
           gpa?: number | null
+          guardian_name?: string | null
+          guardian_phone?: string | null
           id?: string
+          phone?: string | null
           status?: string
           student_no?: string
           updated_at?: string
@@ -465,6 +567,10 @@ export type Database = {
           full_name: string
           id: string
           joined_year: number | null
+          office: string | null
+          phone: string | null
+          qualification: string | null
+          specialization: string | null
           staff_no: string
           title: string
           updated_at: string
@@ -477,6 +583,10 @@ export type Database = {
           full_name: string
           id?: string
           joined_year?: number | null
+          office?: string | null
+          phone?: string | null
+          qualification?: string | null
+          specialization?: string | null
           staff_no: string
           title: string
           updated_at?: string
@@ -489,6 +599,10 @@ export type Database = {
           full_name?: string
           id?: string
           joined_year?: number | null
+          office?: string | null
+          phone?: string | null
+          qualification?: string | null
+          specialization?: string | null
           staff_no?: string
           title?: string
           updated_at?: string
