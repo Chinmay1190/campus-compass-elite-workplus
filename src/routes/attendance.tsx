@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Modal, Field, inputClass } from "@/components/Modal";
 import {
   useQuery,
+  useRealtime,
   fetchStudents,
   fetchCourses,
   fetchAttendance,

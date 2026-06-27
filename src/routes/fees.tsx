@@ -4,7 +4,7 @@ import { Plus, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Modal, Field, inputClass } from "@/components/Modal";
-import { useQuery, fetchFees, fetchStudents, createFee, updateFee, deleteFee, markFeePaid, type Fee } from "@/lib/api";
+import { useQuery, useRealtime, fetchFees, fetchStudents, createFee, updateFee, deleteFee, markFeePaid, type Fee } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ExportMenu } from "@/components/ExportMenu";
 import type { ExportColumn } from "@/lib/export";
