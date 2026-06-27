@@ -15,6 +15,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MyClassesRouteImport } from './routes/my-classes'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -54,6 +55,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyClassesRoute = MyClassesRouteImport.update({
+  id: '/my-classes',
+  path: '/my-classes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/my-classes': typeof MyClassesRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/my-classes': typeof MyClassesRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/me': typeof MeRoute
+  '/my-classes': typeof MyClassesRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/login'
     | '/me'
+    | '/my-classes'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/login'
     | '/me'
+    | '/my-classes'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/login'
     | '/me'
+    | '/my-classes'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -230,6 +242,7 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   MeRoute: typeof MeRoute
+  MyClassesRoute: typeof MyClassesRoute
   ProfileRoute: typeof ProfileRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -280,6 +293,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-classes': {
+      id: '/my-classes'
+      path: '/my-classes'
+      fullPath: '/my-classes'
+      preLoaderRoute: typeof MyClassesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -366,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   MeRoute: MeRoute,
+  MyClassesRoute: MyClassesRoute,
   ProfileRoute: ProfileRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
