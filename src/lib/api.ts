@@ -507,3 +507,147 @@ export const updateSettings = async (input: Partial<Omit<AppSettings, "id">>) =>
     .upsert({ id: "global", ...input } as never);
   if (error) throw error;
 };
+
+/* ----------------------------- Realtime ----------------------------- */
+
+export function useRealtime(
+  channelName: string,
+  tables: string[],
+  onChange: () => void,
+) {
+  useEffect(() => {
+    const ch = supabase.channel(channelName);
+    tables.forEach((t) => {
+      ch.on(
+        "postgres_changes" as never,
+        { event: "*", schema: "public", table: t },
+        () => onChange(),
+      );
+    });
+    ch.subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelName]);
+}
+
+/* ----------------------------- Self-service ----------------------------- */
+
+export const fetchMyStudent = async (): Promise<Student | null> => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return null;
+  const { data } = await supabase
+    .from("students")
+    .select("*, course:courses(code, title)")
+    .eq("user_id", u.user.id)
+    .maybeSingle();
+  return (data ?? null) as Student | null;
+};
+
+export const fetchMyTeacher = async (): Promise<Teacher | null> => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return null;
+  const { data } = await supabase
+    .from("teachers")
+    .select("*")
+    .eq("user_id", u.user.id)
+    .maybeSingle();
+  return (data ?? null) as Teacher | null;
+};
+
+export const fetchMyAttendance = async (): Promise<AttendanceRow[]> => {
+  const me = await fetchMyStudent();
+  if (!me) return [];
+  const { data } = await supabase
+    .from("attendance")
+    .select("*")
+    .eq("student_id", me.id)
+    .order("date", { ascending: false })
+    .limit(60);
+  return (data ?? []) as AttendanceRow[];
+};
+
+export const fetchMyGrades = async () => {
+  const me = await fetchMyStudent();
+  if (!me) return [];
+  const { data } = await supabase
+    .from("grades")
+    .select("id, score, exam:exams(title, total_marks, exam_date, course:courses(code, title))")
+    .eq("student_id", me.id);
+  return data ?? [];
+};
+
+export const fetchMyFees = async (): Promise<Fee[]> => {
+  const me = await fetchMyStudent();
+  if (!me) return [];
+  const { data } = await supabase
+    .from("fees")
+    .select("*, student:students(full_name, student_no)")
+    .eq("student_id", me.id)
+    .order("due_date", { ascending: false });
+  return (data ?? []) as Fee[];
+};
+
+export const fetchMyLoans = async (): Promise<Loan[]> => {
+  const me = await fetchMyStudent();
+  if (!me) return [];
+  const { data } = await supabase
+    .from("book_loans")
+    .select("*, book:library_books(title), student:students(full_name)")
+    .eq("student_id", me.id)
+    .order("borrowed_on", { ascending: false });
+  return (data ?? []) as Loan[];
+};
+
+export const fetchTeacherCourses = async (): Promise<Course[]> => {
+  const me = await fetchMyTeacher();
+  if (!me) return [];
+  const { data } = await supabase
+    .from("courses")
+    .select("*, instructor:teachers(full_name)")
+    .eq("instructor_id", me.id)
+    .order("code");
+  const { data: students } = await supabase.from("students").select("course_id");
+  const counts = new Map<string, number>();
+  (students ?? []).forEach((s) => {
+    if (s.course_id) counts.set(s.course_id, (counts.get(s.course_id) ?? 0) + 1);
+  });
+  return (data ?? []).map((c) => ({ ...c, enrolled_count: counts.get(c.id) ?? 0 })) as Course[];
+};
+
+export const fetchExamRoster = async (examId: string) => {
+  const { data: exam } = await supabase
+    .from("exams")
+    .select("*, course:courses(code, title)")
+    .eq("id", examId)
+    .maybeSingle();
+  if (!exam) return { exam: null, rows: [] as { student: Student; score: number | null; grade_id: string | null }[] };
+  const { data: students } = await supabase
+    .from("students")
+    .select("*, course:courses(code, title)")
+    .eq("course_id", exam.course_id)
+    .eq("status", "Active")
+    .order("full_name");
+  const { data: grades } = await supabase
+    .from("grades")
+    .select("id, score, student_id")
+    .eq("exam_id", examId);
+  const gmap = new Map<string, { id: string; score: number }>();
+  (grades ?? []).forEach((g) => gmap.set(g.student_id, { id: g.id, score: Number(g.score) }));
+  const rows = (students ?? []).map((s) => {
+    const g = gmap.get(s.id);
+    return { student: s as Student, score: g?.score ?? null, grade_id: g?.id ?? null };
+  });
+  return { exam, rows };
+};
+
+export const recordGradesBulk = async (
+  rows: { exam_id: string; student_id: string; score: number }[],
+) => {
+  if (!rows.length) return;
+  const { error } = await supabase
+    .from("grades")
+    .upsert(rows, { onConflict: "exam_id,student_id" });
+  if (error) throw error;
+};
