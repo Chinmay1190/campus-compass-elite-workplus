@@ -15,6 +15,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as FeesRouteImport } from './routes/fees'
@@ -53,6 +54,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/fees': typeof FeesRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/fees': typeof FeesRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/fees': typeof FeesRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/me': typeof MeRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/library'
     | '/login'
+    | '/me'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/library'
     | '/login'
+    | '/me'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/library'
     | '/login'
+    | '/me'
     | '/profile'
     | '/reports'
     | '/settings'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   FeesRoute: typeof FeesRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  MeRoute: typeof MeRoute
   ProfileRoute: typeof ProfileRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeesRoute: FeesRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  MeRoute: MeRoute,
   ProfileRoute: ProfileRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
