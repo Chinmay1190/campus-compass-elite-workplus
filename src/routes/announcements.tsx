@@ -26,6 +26,7 @@ function AnnouncementsPage() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const { data: announcements, refetch } = useQuery(fetchAnnouncements);
+  useRealtime("announcements-feed", ["announcements"], () => { refetch(); });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");

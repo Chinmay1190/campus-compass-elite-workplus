@@ -20,6 +20,7 @@ const emptyForm = { student_id: "", term: "Fall 2024", amount: 0, due_date: "", 
 
 function FeesPage() {
   const { data: fees, refetch } = useQuery(fetchFees);
+  useRealtime("fees-feed", ["fees"], () => { refetch(); });
   const { data: students } = useQuery(fetchStudents);
   const { hasRole } = useAuth();
   const canEdit = hasRole("admin");
