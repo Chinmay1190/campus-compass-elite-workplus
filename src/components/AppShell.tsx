@@ -17,6 +17,8 @@ import {
   Calendar,
   LogOut,
   UserCircle,
+  Home,
+  Briefcase,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { useAuth, type AppRole } from "@/lib/auth";
@@ -32,6 +34,8 @@ type NavItem = {
 const ALL: AppRole[] = ["admin", "teacher", "student"];
 const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ALL },
+  { to: "/me", label: "My Dashboard", icon: Home, roles: ["student"] },
+  { to: "/my-classes", label: "My Classes", icon: Briefcase, roles: ["teacher"] },
   { to: "/students", label: "Student Records", icon: Users, roles: ["admin", "teacher"] },
   { to: "/courses", label: "Course Catalog", icon: GraduationCap, roles: ALL },
   { to: "/attendance", label: "Attendance", icon: CalendarCheck, roles: ALL },

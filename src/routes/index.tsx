@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import {
   Users,
@@ -10,7 +10,9 @@ import {
   Clock,
   Megaphone,
 } from "lucide-react";
-import { useQuery, fetchStudents, fetchCourses, fetchFees, fetchAnnouncements } from "@/lib/api";
+import { useQuery, useRealtime, fetchStudents, fetchCourses, fetchFees, fetchAnnouncements } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,10 +25,24 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { data: students } = useQuery(fetchStudents);
-  const { data: courses } = useQuery(fetchCourses);
-  const { data: fees } = useQuery(fetchFees);
-  const { data: announcements } = useQuery(fetchAnnouncements);
+  const { hasRole, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+    if (hasRole("admin")) return;
+    if (hasRole("teacher")) navigate({ to: "/my-classes", replace: true });
+    else if (hasRole("student")) navigate({ to: "/me", replace: true });
+  }, [loading, hasRole, navigate]);
+
+  const { data: students, refetch: rS } = useQuery(fetchStudents);
+  const { data: courses, refetch: rC } = useQuery(fetchCourses);
+  const { data: fees, refetch: rF } = useQuery(fetchFees);
+  const { data: announcements, refetch: rA } = useQuery(fetchAnnouncements);
+
+  useRealtime("dashboard-feed", ["students", "courses", "fees", "announcements"], () => {
+    rS(); rC(); rF(); rA();
+  });
 
   const totalStudents = students?.length ?? 0;
   const activeCourses = courses?.length ?? 0;
@@ -36,10 +52,10 @@ function DashboardPage() {
     : 0;
 
   const stats = [
-    { label: "Total Students", value: totalStudents.toLocaleString(), delta: "+4.8%", icon: Users },
-    { label: "Active Rate", value: `${activeRate}%`, delta: "+1.2%", icon: CalendarCheck },
-    { label: "Fees Collected", value: `$${collected.toLocaleString()}`, delta: "+12.4%", icon: Wallet },
-    { label: "Active Courses", value: activeCourses.toString(), delta: "+3", icon: GraduationCap },
+    { label: "Total Students", value: totalStudents.toLocaleString(), delta: "+4.8%", icon: Users, accent: "from-fern/15 to-success/5" },
+    { label: "Active Rate", value: `${activeRate}%`, delta: "+1.2%", icon: CalendarCheck, accent: "from-sprout/30 to-fern/5" },
+    { label: "Fees Collected", value: `$${collected.toLocaleString()}`, delta: "+12.4%", icon: Wallet, accent: "from-warning/15 to-warning/5" },
+    { label: "Active Courses", value: activeCourses.toString(), delta: "+3", icon: GraduationCap, accent: "from-fern/10 to-mist" },
   ];
 
   const recent = (students ?? []).slice(0, 5);
@@ -67,14 +83,14 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, delta, icon: Icon }) => (
+        {stats.map(({ label, value, delta, icon: Icon, accent }) => (
           <div
             key={label}
-            className="rounded-2xl border border-sprout/30 bg-glass p-6 shadow-soft"
+            className={`group rounded-2xl border border-sprout/30 bg-gradient-to-br ${accent} p-6 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg`}
           >
             <div className="flex items-center justify-between">
               <span className="text-sm text-soil/60">{label}</span>
-              <span className="flex size-9 items-center justify-center rounded-xl bg-sprout/30 text-fern">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-glass text-fern transition group-hover:scale-110">
                 <Icon className="size-4" />
               </span>
             </div>

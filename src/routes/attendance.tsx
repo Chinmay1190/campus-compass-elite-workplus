@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Modal, Field, inputClass } from "@/components/Modal";
 import {
   useQuery,
+  useRealtime,
   fetchStudents,
   fetchCourses,
   fetchAttendance,
@@ -50,6 +51,7 @@ function AttendancePage() {
   const { data: students } = useQuery(fetchStudents);
   const { data: courses } = useQuery(fetchCourses);
   const { data: records, refetch } = useQuery(fetchAttendance);
+  useRealtime("attendance-feed", ["attendance"], () => { refetch(); });
 
   const dates = useMemo(() => lastWeekdays(5), []);
   const roster = useMemo(

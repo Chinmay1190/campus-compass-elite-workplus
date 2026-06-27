@@ -1,10 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Plus, ClipboardList, Award } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Plus, ClipboardList, Award, BookOpenCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Modal, Field, inputClass } from "@/components/Modal";
-import { useQuery, fetchCourses, fetchExams, scheduleExam } from "@/lib/api";
+import {
+  useQuery,
+  useRealtime,
+  fetchCourses,
+  fetchExams,
+  scheduleExam,
+  fetchExamRoster,
+  recordGradesBulk,
+  type Student,
+} from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ExportMenu } from "@/components/ExportMenu";
 import type { ExportColumn } from "@/lib/export";
@@ -30,10 +39,61 @@ function letterGrade(pct: number) {
 function ExamsPage() {
   const { data: courses } = useQuery(fetchCourses);
   const { data: exams, refetch } = useQuery(fetchExams);
+  useRealtime("exams-feed", ["exams", "grades"], () => { refetch(); });
   const { hasRole } = useAuth();
   const canEdit = hasRole("admin") || hasRole("teacher");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  /* ---- Gradebook modal ---- */
+  const [gbExamId, setGbExamId] = useState<string | null>(null);
+  const [gbRoster, setGbRoster] = useState<{ student: Student; score: number | null; grade_id: string | null }[]>([]);
+  const [gbExam, setGbExam] = useState<{ id: string; title: string; total_marks: number; course?: { code: string; title: string } | null } | null>(null);
+  const [gbInputs, setGbInputs] = useState<Record<string, string>>({});
+  const [gbSaving, setGbSaving] = useState(false);
+
+  useEffect(() => {
+    if (!gbExamId) return;
+    fetchExamRoster(gbExamId).then(({ exam, rows }) => {
+      setGbExam(exam as never);
+      setGbRoster(rows);
+      const init: Record<string, string> = {};
+      rows.forEach((r) => { init[r.student.id] = r.score != null ? String(r.score) : ""; });
+      setGbInputs(init);
+    });
+  }, [gbExamId]);
+
+  const gbAvg = useMemo(() => {
+    const scores = Object.values(gbInputs).map(Number).filter((n) => !Number.isNaN(n) && n > 0);
+    if (!scores.length || !gbExam) return null;
+    const avgRaw = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return { score: avgRaw, pct: (avgRaw / gbExam.total_marks) * 100, count: scores.length };
+  }, [gbInputs, gbExam]);
+
+  const submitGradebook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gbExamId || !gbExam) return;
+    setGbSaving(true);
+    try {
+      const rows = gbRoster
+        .map((r) => ({ student_id: r.student.id, raw: gbInputs[r.student.id] }))
+        .filter((r) => r.raw !== "" && r.raw != null)
+        .map((r) => ({
+          exam_id: gbExamId,
+          student_id: r.student_id,
+          score: Math.max(0, Math.min(gbExam.total_marks, Number(r.raw))),
+        }));
+      await recordGradesBulk(rows);
+      toast.success(`Saved ${rows.length} grade${rows.length === 1 ? "" : "s"}`);
+      setGbExamId(null);
+      await refetch();
+    } catch (err) {
+      toast.error("Could not save grades: " + String(err));
+    } finally {
+      setGbSaving(false);
+    }
+  };
+
   const [form, setForm] = useState({
     course_id: "",
     title: "",
@@ -180,7 +240,7 @@ function ExamsPage() {
           </h2>
           <ul className="mt-5 space-y-3">
             {upcoming.map((e) => (
-              <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sprout/30 bg-mist/40 px-4 py-3">
+              <li key={e.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sprout/30 bg-mist/40 px-4 py-3 transition hover:border-fern/40 hover:bg-mist">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-fern">{e.course?.code}</span>
@@ -193,13 +253,42 @@ function ExamsPage() {
                     {e.location ? ` · ${e.location}` : ""}
                   </p>
                 </div>
-                <div className="rounded-lg bg-fern px-3 py-1.5 text-xs font-medium text-primary-foreground">
-                  {new Date(e.exam_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                <div className="flex items-center gap-2">
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setGbExamId(e.id)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-sprout/40 bg-glass px-2.5 py-1 text-xs font-medium text-soil hover:text-fern"
+                    >
+                      <BookOpenCheck className="size-3.5" /> Gradebook
+                    </button>
+                  )}
+                  <div className="rounded-lg bg-fern px-3 py-1.5 text-xs font-medium text-primary-foreground">
+                    {new Date(e.exam_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </div>
                 </div>
               </li>
             ))}
             {upcoming.length === 0 && <li className="text-sm text-soil/60">No upcoming exams scheduled.</li>}
           </ul>
+          {canEdit && (exams ?? []).filter((e) => e.exam_date < today).length > 0 && (
+            <>
+              <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-soil/60">Past exams · grade entry</h3>
+              <ul className="mt-3 space-y-2">
+                {(exams ?? []).filter((e) => e.exam_date < today).slice(0, 6).map((e) => (
+                  <li key={e.id} className="flex items-center justify-between rounded-xl bg-mist/40 px-4 py-2.5">
+                    <div>
+                      <div className="text-sm font-medium text-soil">{e.title}</div>
+                      <div className="text-xs text-soil/60">{e.course?.code} · {e.exam_date} · {(e.grades?.length ?? 0)} graded</div>
+                    </div>
+                    <button onClick={() => setGbExamId(e.id)} className="rounded-lg border border-sprout/40 bg-glass px-2.5 py-1 text-xs font-medium text-soil hover:text-fern">
+                      Open gradebook
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
 
         <section className="rounded-2xl border border-sprout/30 bg-glass p-6 shadow-soft">
@@ -277,6 +366,77 @@ function ExamsPage() {
           </Field>
           <button type="submit" disabled={saving} className="w-full rounded-xl bg-fern px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-50">
             {saving ? "Saving…" : "Schedule exam"}
+          </button>
+        </form>
+      </Modal>
+
+      <Modal size="xl" open={!!gbExamId} onClose={() => setGbExamId(null)} title={gbExam ? `Gradebook · ${gbExam.title}` : "Gradebook"}>
+        <form onSubmit={submitGradebook} className="space-y-4">
+          {gbExam && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist/60 px-4 py-3 text-xs text-soil/70">
+              <span>
+                <strong className="text-soil">{gbExam.course?.code}</strong> · {gbRoster.length} students · {gbExam.total_marks} marks max
+              </span>
+              {gbAvg && (
+                <span>
+                  Class avg: <strong className="text-fern">{gbAvg.score.toFixed(1)}</strong> ({gbAvg.pct.toFixed(0)}%) across {gbAvg.count}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-sprout/30">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-mist/80 text-left text-xs uppercase tracking-wider text-soil/60">
+                <tr>
+                  <th className="py-2 pl-4 pr-3">Student</th>
+                  <th className="py-2 px-3 w-32">Score</th>
+                  <th className="py-2 px-3 w-20 text-right">%</th>
+                  <th className="py-2 pr-4 pl-3 w-20 text-right">Grade</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sprout/20">
+                {gbRoster.map((r) => {
+                  const raw = gbInputs[r.student.id] ?? "";
+                  const n = Number(raw);
+                  const ok = raw !== "" && !Number.isNaN(n);
+                  const pct = ok && gbExam ? (n / gbExam.total_marks) * 100 : null;
+                  return (
+                    <tr key={r.student.id}>
+                      <td className="py-2.5 pl-4 pr-3">
+                        <div className="font-medium text-soil">{r.student.full_name}</div>
+                        <div className="text-xs text-soil/60">{r.student.student_no}</div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="number"
+                          min={0}
+                          max={gbExam?.total_marks ?? 100}
+                          step="0.5"
+                          className={inputClass}
+                          value={raw}
+                          onChange={(ev) => setGbInputs((s) => ({ ...s, [r.student.id]: ev.target.value }))}
+                          placeholder="—"
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-soil/70">{pct != null ? `${pct.toFixed(0)}%` : "—"}</td>
+                      <td className="py-2.5 pr-4 pl-3 text-right">
+                        {pct != null ? (
+                          <span className="rounded-md bg-fern px-2 py-0.5 text-xs font-semibold text-primary-foreground">{letterGrade(pct)}</span>
+                        ) : (
+                          <span className="text-xs text-soil/40">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {gbRoster.length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-sm text-soil/60">No active students enrolled in this course.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <button type="submit" disabled={gbSaving || gbRoster.length === 0} className="w-full rounded-xl bg-fern px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-50">
+            {gbSaving ? "Saving…" : "Save grades"}
           </button>
         </form>
       </Modal>

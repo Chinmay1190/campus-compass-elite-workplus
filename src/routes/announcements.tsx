@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Megaphone, Plus, Users, GraduationCap, Shield, Globe, Trash2, Pencil, Pin } from "lucide-react";
 import { useState } from "react";
-import { useQuery, fetchAnnouncements, deleteAnnouncement, updateAnnouncement, createAnnouncement, type Announcement } from "@/lib/api";
+import { useQuery, useRealtime, fetchAnnouncements, deleteAnnouncement, updateAnnouncement, createAnnouncement, type Announcement } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { ExportMenu } from "@/components/ExportMenu";
@@ -26,6 +26,7 @@ function AnnouncementsPage() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const { data: announcements, refetch } = useQuery(fetchAnnouncements);
+  useRealtime("announcements-feed", ["announcements"], () => { refetch(); });
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
