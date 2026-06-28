@@ -17,6 +17,7 @@ import {
   fetchStudents,
   fetchExams,
   fetchAttendance,
+  fetchTeacherAttendanceByCourse,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -32,9 +33,10 @@ function TeacherDashboard() {
   const { data: students, refetch: rS } = useQuery(fetchStudents);
   const { data: exams, refetch: rE } = useQuery(fetchExams);
   const { data: attendance, refetch: rA } = useQuery(fetchAttendance);
+  const { data: byCourse, refetch: rBC } = useQuery(fetchTeacherAttendanceByCourse);
 
   useRealtime("teacher-feed", ["courses", "students", "exams", "grades", "attendance"], () => {
-    rC(); rS(); rE(); rA();
+    rC(); rS(); rE(); rA(); rBC();
   });
 
   const myCourseIds = useMemo(() => new Set((courses ?? []).map((c) => c.id)), [courses]);
@@ -132,6 +134,49 @@ function TeacherDashboard() {
           </ul>
         </section>
       </div>
+
+      <section className="mt-6 rounded-2xl border border-sprout/30 bg-glass p-6 shadow-soft">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-soil">
+          <CalendarCheck className="size-5 text-fern" /> Attendance evidence timeline
+        </h2>
+        <p className="text-xs text-soil/60">Last 30 days per course · updates in realtime</p>
+        <div className="mt-5 space-y-5">
+          {Object.entries(byCourse ?? {}).map(([cid, group]) => {
+            const rows = group.rows;
+            const tot = rows.length;
+            const pres = rows.filter((r) => r.status === "present").length;
+            const late = rows.filter((r) => r.status === "late").length;
+            const abs = rows.filter((r) => r.status === "absent").length;
+            const rate = tot ? Math.round((pres / tot) * 100) : 0;
+            return (
+              <div key={cid} className="rounded-xl border border-sprout/30 bg-mist/40 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-soil">{group.course.code} — {group.course.title}</div>
+                    <div className="text-xs text-soil/60">{tot} records · {pres} present · {late} late · {abs} absent</div>
+                  </div>
+                  <span className="rounded-full bg-fern/15 px-2.5 py-0.5 text-xs font-semibold text-fern">{rate}% present</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {rows.length === 0 && <span className="text-xs text-soil/50">No attendance recorded yet.</span>}
+                  {rows.slice(0, 80).map((r) => (
+                    <span
+                      key={r.id}
+                      title={`${new Date(r.date).toLocaleDateString()} — ${r.status}`}
+                      className={`inline-block size-3 rounded-sm ${
+                        r.status === "present" ? "bg-success" : r.status === "late" ? "bg-warning" : "bg-destructive"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {Object.keys(byCourse ?? {}).length === 0 && (
+            <div className="rounded-xl bg-mist/40 p-4 text-sm text-soil/60">No attendance yet.</div>
+          )}
+        </div>
+      </section>
     </AppShell>
   );
 }

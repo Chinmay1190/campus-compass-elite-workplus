@@ -10,7 +10,6 @@ import {
   Settings,
   Leaf,
   Search,
-  Bell,
   BookOpen,
   Megaphone,
   ClipboardList,
@@ -19,10 +18,12 @@ import {
   UserCircle,
   Home,
   Briefcase,
+  ShieldCheck,
 } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { useAuth, type AppRole } from "@/lib/auth";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 type NavItem = {
   to: string;
@@ -46,6 +47,7 @@ const nav: NavItem[] = [
   { to: "/announcements", label: "Announcements", icon: Megaphone, roles: ALL },
   { to: "/calendar", label: "Calendar", icon: Calendar, roles: ALL },
   { to: "/reports", label: "Reports", icon: BarChart3, roles: ["admin", "teacher"] },
+  { to: "/audit", label: "Audit Log", icon: ShieldCheck, roles: ["admin", "teacher"] },
   { to: "/settings", label: "Settings", icon: Settings, roles: ["admin"] },
 ];
 
@@ -125,10 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="w-full rounded-xl border border-sprout/40 bg-mist/60 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-soil/50 focus:border-fern focus:bg-glass"
             />
           </div>
-          <button className="relative rounded-xl border border-sprout/40 bg-glass p-2 text-soil/70 hover:text-fern">
-            <Bell className="size-4" />
-            <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-fern" />
-          </button>
+          <NotificationCenter />
 
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
