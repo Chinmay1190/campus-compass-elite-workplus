@@ -406,6 +406,7 @@ function ExamsPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist/60 px-4 py-3 text-xs text-soil/70">
               <span>
                 <strong className="text-soil">{gbExam.course?.code}</strong> · {gbRoster.length} students · {gbExam.total_marks} marks max
+                {" "}· <strong className="text-fern">{gbGradedCount}</strong> graded
               </span>
               {gbAvg && (
                 <span>
@@ -414,6 +415,32 @@ function ExamsPage() {
               )}
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[12rem]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-soil/40" />
+              <input
+                value={gbSearch}
+                onChange={(e) => { setGbSearch(e.target.value); setGbPage(1); }}
+                placeholder="Search by name, student no, email…"
+                className={`${inputClass} pl-9`}
+              />
+            </div>
+            <div className="inline-flex items-center gap-1 rounded-xl border border-sprout/40 bg-mist/60 p-1">
+              {(["all", "graded", "ungraded"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => { setGbFilter(t); setGbPage(1); }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
+                    gbFilter === t ? "bg-fern text-primary-foreground shadow-soft" : "text-soil/70 hover:text-fern"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-soil/60">{gbFiltered.length} match{gbFiltered.length === 1 ? "" : "es"}</span>
+          </div>
           <div className="max-h-[55vh] overflow-y-auto rounded-xl border border-sprout/30">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-mist/80 text-left text-xs uppercase tracking-wider text-soil/60">
@@ -425,7 +452,7 @@ function ExamsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-sprout/20">
-                {gbRoster.map((r) => {
+                {gbPaged.map((r) => {
                   const raw = gbInputs[r.student.id] ?? "";
                   const n = Number(raw);
                   const ok = raw !== "" && !Number.isNaN(n);
@@ -459,12 +486,25 @@ function ExamsPage() {
                     </tr>
                   );
                 })}
-                {gbRoster.length === 0 && (
+                {gbFiltered.length === 0 && (
                   <tr><td colSpan={4} className="py-8 text-center text-sm text-soil/60">No active students enrolled in this course.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
+          {gbPageCount > 1 && (
+            <div className="flex items-center justify-between text-xs text-soil/60">
+              <span>Page {gbPage} of {gbPageCount} · showing {gbPaged.length} of {gbFiltered.length}</span>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setGbPage((p) => Math.max(1, p - 1))} disabled={gbPage === 1} className="rounded-lg border border-sprout/40 bg-glass p-1.5 disabled:opacity-40 hover:text-fern">
+                  <ChevronLeft className="size-3.5" />
+                </button>
+                <button type="button" onClick={() => setGbPage((p) => Math.min(gbPageCount, p + 1))} disabled={gbPage === gbPageCount} className="rounded-lg border border-sprout/40 bg-glass p-1.5 disabled:opacity-40 hover:text-fern">
+                  <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
           <button type="submit" disabled={gbSaving || gbRoster.length === 0} className="w-full rounded-xl bg-fern px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-soft hover:opacity-90 disabled:opacity-50">
             {gbSaving ? "Saving…" : "Save grades"}
           </button>
