@@ -651,3 +651,126 @@ export const recordGradesBulk = async (
     .upsert(rows, { onConflict: "exam_id,student_id" });
   if (error) throw error;
 };
+
+/* ----------------------------- Notifications ----------------------------- */
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  type: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
+export const fetchMyNotifications = async (): Promise<Notification[]> => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return [];
+  const { data, error } = await supabase
+    .from("notifications" as never)
+    .select("*")
+    .eq("user_id", u.user.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data ?? []) as Notification[];
+};
+
+export const markNotificationRead = async (id: string) => {
+  const { error } = await supabase
+    .from("notifications" as never)
+    .update({ read_at: new Date().toISOString() } as never)
+    .eq("id", id);
+  if (error) throw error;
+};
+
+export const markAllNotificationsRead = async () => {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return;
+  const { error } = await supabase
+    .from("notifications" as never)
+    .update({ read_at: new Date().toISOString() } as never)
+    .eq("user_id", u.user.id)
+    .is("read_at", null);
+  if (error) throw error;
+};
+
+export const deleteNotification = async (id: string) => {
+  const { error } = await supabase.from("notifications" as never).delete().eq("id", id);
+  if (error) throw error;
+};
+
+/* ----------------------------- Audit logs ----------------------------- */
+
+export type AuditLog = {
+  id: string;
+  table_name: string;
+  record_id: string | null;
+  action: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  summary: string | null;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export const fetchAuditLogs = async (
+  filter?: { table?: "attendance" | "grades" | "all"; limit?: number },
+): Promise<AuditLog[]> => {
+  let q = supabase
+    .from("audit_logs" as never)
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(filter?.limit ?? 100);
+  if (filter?.table && filter.table !== "all") q = q.eq("table_name", filter.table);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as AuditLog[];
+};
+
+/* ----------------------------- Attendance timelines ----------------------------- */
+
+export const fetchMyAttendanceByCourse = async (): Promise<
+  Record<string, { course: { id: string; code: string; title: string } | null; rows: AttendanceRow[] }>
+> => {
+  const rows = await fetchMyAttendance();
+  const me = await fetchMyStudent();
+  const { data: courses } = await supabase.from("courses").select("id, code, title");
+  const cmap = new Map<string, { id: string; code: string; title: string }>();
+  (courses ?? []).forEach((c) => cmap.set(c.id, c as { id: string; code: string; title: string }));
+  const out: Record<string, { course: { id: string; code: string; title: string } | null; rows: AttendanceRow[] }> = {};
+  rows.forEach((r) => {
+    const key = r.course_id ?? "unknown";
+    if (!out[key]) out[key] = { course: cmap.get(key) ?? null, rows: [] };
+    out[key].rows.push(r);
+  });
+  if (me?.course_id && !out[me.course_id]) {
+    out[me.course_id] = { course: cmap.get(me.course_id) ?? null, rows: [] };
+  }
+  return out;
+};
+
+export const fetchTeacherAttendanceByCourse = async (): Promise<
+  Record<string, { course: Course; rows: AttendanceRow[] }>
+> => {
+  const courses = await fetchTeacherCourses();
+  if (!courses.length) return {};
+  const since = new Date();
+  since.setDate(since.getDate() - 30);
+  const ids = courses.map((c) => c.id);
+  const { data: rows } = await supabase
+    .from("attendance")
+    .select("*")
+    .in("course_id", ids)
+    .gte("date", since.toISOString().slice(0, 10))
+    .order("date", { ascending: false });
+  const out: Record<string, { course: Course; rows: AttendanceRow[] }> = {};
+  courses.forEach((c) => (out[c.id] = { course: c, rows: [] }));
+  (rows ?? []).forEach((r) => {
+    const k = r.course_id;
+    if (out[k]) out[k].rows.push(r as AttendanceRow);
+  });
+  return out;
+};
