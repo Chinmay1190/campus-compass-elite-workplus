@@ -18,6 +18,7 @@ import {
   fetchMyFees,
   fetchMyLoans,
   fetchAnnouncements,
+  fetchMyAttendanceByCourse,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -43,9 +44,10 @@ function StudentDashboard() {
   const { data: fees, refetch: rF } = useQuery(fetchMyFees);
   const { data: loans, refetch: rL } = useQuery(fetchMyLoans);
   const { data: announcements } = useQuery(fetchAnnouncements);
+  const { data: byCourse, refetch: rBC } = useQuery(fetchMyAttendanceByCourse);
 
   useRealtime("me-feed", ["attendance", "grades", "fees", "book_loans"], () => {
-    rA(); rG(); rF(); rL();
+    rA(); rG(); rF(); rL(); rBC();
   });
 
   const totalAtt = (att ?? []).length;
