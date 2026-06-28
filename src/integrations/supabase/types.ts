@@ -140,6 +140,42 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          id: string
+          meta: Json | null
+          record_id: string | null
+          summary: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          record_id?: string | null
+          summary?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          record_id?: string | null
+          summary?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       book_loans: {
         Row: {
           book_id: string
@@ -455,6 +491,39 @@ export type Database = {
           total_copies?: number
           updated_at?: string
           year_published?: number | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string | null
+          user_id?: string
         }
         Relationships: []
       }
