@@ -99,11 +99,10 @@ export function NotificationCenter() {
             )}
             {items.map((n) => {
               const cls = typeStyles[n.type ?? "info"] ?? typeStyles.info;
-              const Wrapper: React.ElementType = n.link ? Link : "div";
-              const wrapperProps = n.link ? { to: n.link, onClick: () => setOpen(false) } : {};
               return (
-                <li key={n.id} className={`relative px-4 py-3 transition ${n.read_at ? "" : "bg-fern/5"}`}>
-                  <Wrapper {...wrapperProps} className="block">
+                <li key={n.id} className={`group relative px-4 py-3 transition ${n.read_at ? "" : "bg-fern/5"}`}>
+                  {n.link ? (
+                    <Link to={n.link as "/"} onClick={() => setOpen(false)} className="block pr-12">
                     <div className="flex items-start gap-3">
                       <span className={`mt-0.5 inline-flex shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${cls}`}>
                         {n.type ?? "info"}
@@ -114,8 +113,22 @@ export function NotificationCenter() {
                         <div className="mt-1 text-[10px] uppercase tracking-wider text-soil/40">{timeAgo(n.created_at)}</div>
                       </div>
                     </div>
-                  </Wrapper>
-                  <div className="absolute right-2 top-2 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+                    </Link>
+                  ) : (
+                    <div className="block pr-12">
+                      <div className="flex items-start gap-3">
+                        <span className={`mt-0.5 inline-flex shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${cls}`}>
+                          {n.type ?? "info"}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-soil">{n.title}</div>
+                          {n.body && <div className="mt-0.5 line-clamp-2 text-xs text-soil/70">{n.body}</div>}
+                          <div className="mt-1 text-[10px] uppercase tracking-wider text-soil/40">{timeAgo(n.created_at)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute right-2 top-3 flex gap-0.5">
                     {!n.read_at && (
                       <button
                         title="Mark read"
