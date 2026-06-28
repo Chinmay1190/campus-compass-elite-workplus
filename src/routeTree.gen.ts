@@ -23,6 +23,7 @@ import { Route as FeesRouteImport } from './routes/fees'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as AnnouncementsRouteImport } from './routes/announcements'
 import { Route as IndexRouteImport } from './routes/index'
@@ -97,6 +98,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AttendanceRoute = AttendanceRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/announcements': typeof AnnouncementsRoute
   '/attendance': typeof AttendanceRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/courses': typeof CoursesRoute
   '/exams': typeof ExamsRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/announcements': typeof AnnouncementsRoute
   '/attendance': typeof AttendanceRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/courses': typeof CoursesRoute
   '/exams': typeof ExamsRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/announcements': typeof AnnouncementsRoute
   '/attendance': typeof AttendanceRoute
+  '/audit': typeof AuditRoute
   '/calendar': typeof CalendarRoute
   '/courses': typeof CoursesRoute
   '/exams': typeof ExamsRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/announcements'
     | '/attendance'
+    | '/audit'
     | '/calendar'
     | '/courses'
     | '/exams'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/announcements'
     | '/attendance'
+    | '/audit'
     | '/calendar'
     | '/courses'
     | '/exams'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/announcements'
     | '/attendance'
+    | '/audit'
     | '/calendar'
     | '/courses'
     | '/exams'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnnouncementsRoute: typeof AnnouncementsRoute
   AttendanceRoute: typeof AttendanceRoute
+  AuditRoute: typeof AuditRoute
   CalendarRoute: typeof CalendarRoute
   CoursesRoute: typeof CoursesRoute
   ExamsRoute: typeof ExamsRoute
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/attendance': {
       id: '/attendance'
       path: '/attendance'
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnnouncementsRoute: AnnouncementsRoute,
   AttendanceRoute: AttendanceRoute,
+  AuditRoute: AuditRoute,
   CalendarRoute: CalendarRoute,
   CoursesRoute: CoursesRoute,
   ExamsRoute: ExamsRoute,

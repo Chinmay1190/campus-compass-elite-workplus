@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Plus, ClipboardList, Award, BookOpenCheck } from "lucide-react";
+import { Plus, ClipboardList, Award, BookOpenCheck, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Modal, Field, inputClass } from "@/components/Modal";
@@ -51,6 +51,10 @@ function ExamsPage() {
   const [gbExam, setGbExam] = useState<{ id: string; title: string; total_marks: number; course?: { code: string; title: string } | null } | null>(null);
   const [gbInputs, setGbInputs] = useState<Record<string, string>>({});
   const [gbSaving, setGbSaving] = useState(false);
+  const [gbSearch, setGbSearch] = useState("");
+  const [gbFilter, setGbFilter] = useState<"all" | "graded" | "ungraded">("all");
+  const [gbPage, setGbPage] = useState(1);
+  const gbPageSize = 15;
 
   useEffect(() => {
     if (!gbExamId) return;
@@ -60,8 +64,34 @@ function ExamsPage() {
       const init: Record<string, string> = {};
       rows.forEach((r) => { init[r.student.id] = r.score != null ? String(r.score) : ""; });
       setGbInputs(init);
+      setGbSearch("");
+      setGbFilter("all");
+      setGbPage(1);
     });
   }, [gbExamId]);
+
+  const gbFiltered = useMemo(() => {
+    const q = gbSearch.trim().toLowerCase();
+    return gbRoster.filter((r) => {
+      if (q && !`${r.student.full_name} ${r.student.student_no} ${r.student.email}`.toLowerCase().includes(q)) return false;
+      const hasScore = (gbInputs[r.student.id] ?? "") !== "";
+      if (gbFilter === "graded" && !hasScore) return false;
+      if (gbFilter === "ungraded" && hasScore) return false;
+      return true;
+    });
+  }, [gbRoster, gbSearch, gbFilter, gbInputs]);
+
+  const gbPageCount = Math.max(1, Math.ceil(gbFiltered.length / gbPageSize));
+  const gbPaged = useMemo(
+    () => gbFiltered.slice((gbPage - 1) * gbPageSize, gbPage * gbPageSize),
+    [gbFiltered, gbPage],
+  );
+  useEffect(() => { if (gbPage > gbPageCount) setGbPage(gbPageCount); }, [gbPageCount, gbPage]);
+
+  const gbGradedCount = useMemo(
+    () => gbRoster.filter((r) => (gbInputs[r.student.id] ?? "") !== "").length,
+    [gbRoster, gbInputs],
+  );
 
   const gbAvg = useMemo(() => {
     const scores = Object.values(gbInputs).map(Number).filter((n) => !Number.isNaN(n) && n > 0);
